@@ -1,7 +1,31 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright 2025 stormoid
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Fast Kanji - A Kanji Component Search App
+https://github.com/stormoid/fast_kanji
+
+["Small tool to quickly Search for Kanji based on the English meaning of components.
+This way, if you know your radicals, you won't need to play where's waldo to find kanjis quickly"]
+"""
 import json
 import os
 import tkinter as tk
+import webbrowser
 from tkinter import ttk
 from tkinter import scrolledtext
 
@@ -119,7 +143,7 @@ class KanjiSearchApp:
         self.style.configure('TLabelframe.Label', background=frame_bg, foreground=fg_color)
         self.style.configure('TCheckbutton', background=frame_bg, foreground=fg_color, focuscolor=frame_bg)
         self.style.map('TCheckbutton',
-           indicatorcolor=[("selected", "#00AA88"), ("!selected", frame_bg)],
+           indicatorcolor=[("selected", "#079EAA"), ("!selected", frame_bg)],
            background=[('active', frame_bg)]
         )
 
@@ -349,10 +373,36 @@ class KanjiSearchApp:
         """Displays the details of the selected Kanji."""
         kanji_entry = self.find_kanji_in_kanjidic(kanji)
         if kanji_entry:
-            details = self.extract_kanji_details(kanji_entry)
             self.kanji_details_text.config(state="normal")
             self.kanji_details_text.delete("1.0", tk.END)
+
+            literal = kanji_entry.get('literal', '')
+            jisho_url = f"https://jisho.org/search/{literal}%20%23kanji"
+            kanshudo_url = f"https://www.kanshudo.com/kanji/{literal}"
+
+            # Insert the literal first
+            self.kanji_details_text.insert(tk.END, f"{literal} | ")
+
+            # Add Jisho link
+            self.kanji_details_text.insert(tk.END, "Jisho", "jisho_link")
+            self.kanji_details_text.tag_config("jisho_link", foreground="#079EAA", underline=0)
+            self.kanji_details_text.tag_bind("jisho_link", "<Button-1>", lambda e, url=jisho_url: self.open_url(url))
+
+            # Add separator
+            self.kanji_details_text.insert(tk.END, " — ")
+
+            # Add Kanshudo link
+            self.kanji_details_text.insert(tk.END, "Kanshudo", "kanshudo_link")
+            self.kanji_details_text.tag_config("kanshudo_link", foreground="#079EAA", underline=0)
+            self.kanji_details_text.tag_bind("kanshudo_link", "<Button-1>", lambda e, url=kanshudo_url: self.open_url(url))
+
+            # Add a newline for better formatting
+            self.kanji_details_text.insert(tk.END, "\n")
+
+            # Now add the rest of the details
+            details = self.extract_kanji_details(kanji_entry)
             self.kanji_details_text.insert(tk.END, details)
+
             self.kanji_details_text.config(state="disabled")
         else:
             self.kanji_details_text.config(state="normal")
@@ -360,10 +410,11 @@ class KanjiSearchApp:
             self.kanji_details_text.insert(tk.END, "Kanji details not found in Kanjidic2.")
             self.kanji_details_text.config(state="disabled")
 
+
     def extract_kanji_details(self, kanji_entry):
         """Extracts details from a Kanjidic2 character entry (JSON format)."""
         literal = kanji_entry.get('literal', '')
-        details = f"{literal} \n"
+        details = ""
 
         # Meanings
         meanings = kanji_entry.get('reading_meaning', {}).get('meaning', [])
@@ -373,15 +424,14 @@ class KanjiSearchApp:
         # Readings
         readings_on = [r['value'] for r in kanji_entry.get('reading_meaning', {}).get('reading', []) if r['r_type'] == 'ja_on']
         readings_kun = [r['value'] for r in kanji_entry.get('reading_meaning', {}).get('reading', []) if r['r_type'] == 'ja_kun']
-        
+
         if readings_on or readings_kun:
             details += "\nReadings:\n"
             if readings_on:
-                details += "On: " + "  or  ".join(readings_on) + "\n"
+                details += "On: " + "  or  ".join(readings_on) + "\n"
             if readings_kun:
-                details += "Kun: " + "  or  ".join(readings_kun) + "\n"
+                details += "Kun: " + "  or  ".join(readings_kun) + "\n"
 
-        # Misc
         grade = kanji_entry.get('grade')
         stroke_count = kanji_entry.get('stroke_count')
         freq = kanji_entry.get('freq')
@@ -398,6 +448,10 @@ class KanjiSearchApp:
             details += f"JLPT Level: {jlpt}\n"
 
         return details
+
+    def open_url(self, url):
+        """Opens the given URL in the default web browser."""
+        webbrowser.open_new(url)
 
 def main():
     root = tk.Tk()
