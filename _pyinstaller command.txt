@@ -1,0 +1,1 @@
+pyinstaller --onefile --windowed --add-data "data/fullcomps.json:." --add-data "data/kanjidic2_stripped.json:." kanji_lookup.py
